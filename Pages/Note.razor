@@ -3,15 +3,16 @@
 @using AppNote.Services
 @inherits OwningComponentBase<NoteService>
 
-<h3>Notes</h3>
-<div style="background-color: lightgray; padding: 5px; margin-bottom: 15px;">
-    <button style="border: none; background-color: white;" type="button" @onclick="ShowPopUpAddNote">New note</button>
-    <input style="border: none; position: fixed; left: 50%; margin-left: -250px" type="text" placeholder="Enter search term" size="80"/>
-    <label style="float: right; padding-top: 1px; padding-right: 10px;">Total notes: @sc.Count</label>
-</div>
+@inject NavigationManager uriHelper;
 
-@if (_popUpAddNote) 
-{ 
+<header class="header">
+    <button class="header-button" type="button" @onclick="ShowPopUpAddNote">New note</button>
+    <input class="header-input" type="text" placeholder="Enter search term" size="80" value="@_searchStr" @onchange="FindNotes"/>
+    <label class="header-label">Total notes: @_notes.Count</label>
+</header>
+
+@if (_popUpAddNote)
+{
     <div class="modal" tabindex="-1" role="dialog" style="display:block;">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -19,20 +20,16 @@
                     <h5 class="modal-title">Add new Note</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="ClosePopUpAddNote"></button>
                 </div>
-                <EditForm Model="note" OnValidSubmit="SaveNote">
+                <EditForm Model="_note" OnValidSubmit="SaveNote">
                     <div class="modal-body">
                         <table>
                             <tr>
                                 <td>Note Title</td>
-                                <td><input type="text" placeholder="Note title..." @bind="note.Title" /></td>
+                                <td><input type="text" placeholder="Note title..." @bind="_note.Title" /></td>
                             </tr>
                             <tr>
                                 <td>Note Text</td>
-                                <td><input type="text" placeholder="Note text..." @bind="note.Text"/></td>
-                            </tr>
-                            <tr>
-                                <td>Note Date</td>
-                                <td><input type="datetime" placeholder="DD/MM/YYYY" @bind="note.Date"/></td>
+                                <td><input type="text" placeholder="Note text..." @bind="_note.Text" /></td>
                             </tr>
                         </table>
                     </div>
@@ -45,43 +42,149 @@
     </div>
 }
 
-<div>
-    @foreach (var item in sc)
-    {
-    <div style="background-color: lightgray; margin: 10px 40px">
-        <label style="padding-top: 7px; padding-left: 50px;">@item.Title</label>
-        <label style="padding-top: 7px; padding-left: 50px;">@item.Date</label>
-        <button style="border: none; background-color: white;" type="button" @onclick="ShowPopUpAddNote">View note</button>
-        <button style="border: none; background-color: white;" type="button" @onclick="ShowPopUpAddNote">Edit note</button>
+@if (_popEditNote)
+{
+    <div class="modal" tabindex="-1" role="dialog" style="display:block;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add new Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @onclick="ClosePopUpEditNote"></button>
+                </div>
+                <EditForm Model="CurrNote" OnValidSubmit="SaveEditedNote">
+                    <div class="modal-body">
+                        <table>
+                            <tr>
+                                <td>Note Title</td>
+                                <td><input type="text" placeholder="Note title..." @bind="CurrNote.Title" /></td>
+                            </tr>
+                            <tr>
+                                <td>Note Text</td>
+                                <td><input type="text" placeholder="Note text..." @bind="CurrNote.Text" /></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save note</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
     </div>
+}
+
+<div class="notes">
+    @foreach (var note in _notes)
+    {
+        <div class="note-collapsed">
+            <label class="note-title">@note.Title</label>
+            <button class="note-button" type="button" @onclick="() => ShowPopUpEditNote(note)">Edit note</button>
+            <button class="note-button" type="button" @onclick="() => ViewNote(note)">View note</button>
+            <label class="note-date">@GetNoteTimeSinceCreate(note.Date)</label>
+        </div>
+        @if (note == CurrNote && _expanded)
+        {
+            <div class="note-expanded">
+                <p class="note-text">@note.Text</p>
+            </div>
+        }
     }
 </div>
+<footer class="footer">
+    <label>4Notes: anonymous notes sharing</label>
+</footer>
 
 @code {
+    private bool _expanded = false;
+
     private bool _popUpAddNote = false;
 
-    private System.Collections.Generic.IList<NoteClass> sc;
+    private bool _popEditNote = false;
 
-    private NoteClass note = new();
+
+    private string _searchStr = "";
+
+
+    private IList<NoteClass> _notes;
+
+
+    private NoteClass _note = new();
+
+    public NoteClass CurrNote { get; set; }
 
     protected override void OnInitialized()
     {
-        sc = Service.DisplayNotes();
+        _notes = Service.DisplayNotes();
     }
 
-    void ShowPopUpAddNote()
+    private void FindNotes()
+    {
+        Service.FindNotes(_searchStr);
+        uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
+    }
+
+    private void ShowPopUpAddNote()
     {
         _popUpAddNote = true;
     }
 
-    void ClosePopUpAddNote()
+    private void ClosePopUpAddNote()
     {
         _popUpAddNote = false;
     }
 
-    void SaveNote()
+    private void SaveNote()
     {
-        Service.AddNewNote(note);
+        _note.Date = DateTime.Now;
+        Service.AddNewNote(_note);
+        _note = new();
         _popUpAddNote = false;
+        uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
+    }
+
+
+    private void ShowPopUpEditNote(NoteClass note)
+    {
+        CurrNote = note;
+        _popEditNote = true;
+    }
+
+    private void ClosePopUpEditNote()
+    {
+        _popEditNote = false;
+    }
+
+    private void SaveEditedNote()
+    {
+        CurrNote.Date = DateTime.Now;
+        Service.UpdateNote();
+        _popEditNote = false;
+        uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
+    }
+
+
+    private void ViewNote(NoteClass note)
+    {
+        CurrNote = note;
+        _expanded = !_expanded;
+    }
+
+
+    private string GetNoteTimeSinceCreate(DateTime date)
+    {
+        DateTime now = DateTime.Now;
+        if (now.Year - date.Year > 0)
+        {
+            return $"Created {now.Year - date.Year} year ago";
+        }
+        else if (now.Month - date.Month > 0)
+        {
+            return $"Created {now.Year - date.Year} month ago";
+        }
+        else if (now.Day - date.Day > 0)
+        {
+            return $"Created {now.Year - date.Year} day ago";
+        }
+        return "Created today";
     }
 }
