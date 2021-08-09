@@ -7,7 +7,7 @@
 
 <header class="header">
     <button class="header-button" type="button" @onclick="ShowPopUpAddNote">New note</button>
-    <input class="header-input" type="text" placeholder="Enter search term" size="80" value="@_searchStr" @onchange="FindNotes"/>
+        <input class="header-input" type="text" placeholder="Enter search term" size="80" @bind="SearchStr" />
     <label class="header-label">Total notes: @_notes.Count</label>
 </header>
 
@@ -80,7 +80,7 @@
             <label class="note-title">@note.Title</label>
             <button class="note-button" type="button" @onclick="() => ShowPopUpEditNote(note)">Edit note</button>
             <button class="note-button" type="button" @onclick="() => ViewNote(note)">View note</button>
-            <label class="note-date">@GetNoteTimeSinceCreate(note.Date)</label>
+            <label class="note-date">@GetNoteTimeSinceCreate(note)</label>
         </div>
         @if (note == CurrNote && _expanded)
         {
@@ -102,7 +102,19 @@
     private bool _popEditNote = false;
 
 
-    private string _searchStr = "";
+    private string _searchStr;
+
+    public string SearchStr
+    {
+        get {
+            return _searchStr;
+        }
+        set {
+            _searchStr = value;
+            Service.FindNotes(SearchStr);
+            _notes = Service.DisplayNotes();
+        }
+    }
 
 
     private IList<NoteClass> _notes;
@@ -115,12 +127,6 @@
     protected override void OnInitialized()
     {
         _notes = Service.DisplayNotes();
-    }
-
-    private void FindNotes()
-    {
-        Service.FindNotes(_searchStr);
-        uriHelper.NavigateTo(uriHelper.Uri, forceLoad: true);
     }
 
     private void ShowPopUpAddNote()
@@ -170,20 +176,21 @@
     }
 
 
-    private string GetNoteTimeSinceCreate(DateTime date)
+    private string GetNoteTimeSinceCreate(NoteClass note)
     {
         DateTime now = DateTime.Now;
-        if (now.Year - date.Year > 0)
+        DateTime noteDate = note.Date;
+        if (now.Year - noteDate.Year > 0)
         {
-            return $"Created {now.Year - date.Year} year ago";
+            return $"Created {now.Year - noteDate.Year} year ago";
         }
-        else if (now.Month - date.Month > 0)
+        else if (now.Month - noteDate.Month > 0)
         {
-            return $"Created {now.Year - date.Year} month ago";
+            return $"Created {now.Month - noteDate.Month} month ago";
         }
-        else if (now.Day - date.Day > 0)
+        else if (now.Day - noteDate.Day > 0)
         {
-            return $"Created {now.Year - date.Year} day ago";
+            return $"Created {now.Day - noteDate.Day} day ago";
         }
         return "Created today";
     }
