@@ -28,7 +28,8 @@ namespace AppNote
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<AppNoteDbContext>(options => options.UseNpgsql(Configuration.GetConnectionString("MyConnection")));
+            services.AddDbContextFactory<AppNoteDbContext>(options => options.UseNpgsql(Configuration.GetConnectionString("MyConnection")));
+            //services.AddDbContext<AppNoteDbContext>(options => options.UseNpgsql(Configuration.GetConnectionString("MyConnection")));
             services.AddRazorPages();
             services.AddServerSideBlazor();
             services.AddScoped<NoteService>();
