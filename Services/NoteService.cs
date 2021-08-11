@@ -31,12 +31,10 @@ namespace AppNote.Services
                 FindedNotes = context.Notes.ToList();
             else
             {
-                IList<NoteClass> notes = context.Notes.ToList();
-
-                //Find matching in title
-                IList<NoteClass> matchingNotes = notes.Where(item => item.Title.ToLower().Contains(searchStr.ToLower())).ToList();
-                //Find matching in text
-                FindedNotes = matchingNotes.Concat(notes.Where(item => item.Text.ToLower().Contains(searchStr.ToLower()))).Distinct().ToList();
+                FindedNotes = context.Notes.Where(item => 
+                                                    item.Title.ToLower().Contains(searchStr.ToLower()) || 
+                                                    item.Text.ToLower().Contains(searchStr.ToLower())
+                                                ).ToList();
             }
         }
 
